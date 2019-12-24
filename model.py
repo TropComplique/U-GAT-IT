@@ -34,9 +34,9 @@ class UGATIT:
         logs_dir = 'summaries/run00/'
         self.writer = SummaryWriter(logs_dir)
 
-        num_steps = 1000000
+        num_steps = 500000
         self.num_steps = num_steps
-        self.save_step = 100000
+        self.save_step = 50000
         self.plot_image_step = 1000
         self.plot_loss_step = 10
 
@@ -243,7 +243,7 @@ class UGATIT:
                     self.writer.add_scalar(k, v, step)
 
             if step % self.save_step == 0:
-                self.save()
+                self.save(step)
 
             self.generator.apply(self.rho_clipper)
 
@@ -315,8 +315,8 @@ class UGATIT:
 
         return A2B, B2A
 
-    def save(self):
+    def save(self, step):
 
         path = self.model_save_prefix
-        torch.save(self.generator.state_dict(), f'{path}_generator.pth')
-        torch.save(self.discriminator.state_dict(), f'{path}_discriminator.pth')
+        torch.save(self.generator.state_dict(), f'{path}_step_{step}_generators.pth')
+        torch.save(self.discriminator.state_dict(), f'{path}_step_{step}_discriminators.pth')
