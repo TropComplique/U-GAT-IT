@@ -1,3 +1,4 @@
+import os
 import cv2
 import time
 import numpy as np
@@ -26,6 +27,7 @@ class UGATIT:
         batch_size = 1
         image_size = 256
         device = torch.device('cuda:0')
+        self.device = device
         data = '/home/dan/datasets/selfie2anime/'
 
         self.model_save_prefix = 'models/run00'
@@ -71,7 +73,7 @@ class UGATIT:
         }
 
         self.generator = nn.ModuleDict(generator)
-        self.discriminators = nn.ModuleDict(discriminators)
+        self.discriminator = nn.ModuleDict(discriminator)
 
         def weights_init(m):
             if isinstance(m, (nn.Conv2d, nn.Linear)):
@@ -92,7 +94,7 @@ class UGATIT:
         }
 
         self.G_optimizer = optim.Adam(self.generator.parameters(), **params)
-        self.D_optimizer = optim.Adam(self.discriminators.parameters(), **params)
+        self.D_optimizer = optim.Adam(self.discriminator.parameters(), **params)
 
         def lambda_rule(i):
             decay = int(0.5 * num_steps)
@@ -159,14 +161,15 @@ class UGATIT:
 
     def generators_step(self, real_A, real_B, fake_A2B, fake_B2A, fake_A2B_cam_logit, fake_B2A_cam_logit):
 
-        self.discriminators.requires_grad_(False)
+        self.discriminator.requires_grad_(False)
         self.G_optimizer.zero_grad()
 
         fake_A2B2A, _, _ = self.generator['B2A'](fake_A2B)
         fake_B2A2B, _, _ = self.generator['A2B'](fake_B2A)
 
         def get_discriminator_losses(fake, domain):
-
+            
+            losses = {}
             def mse_loss(x):
                 return (x - 1.0).pow(2).mean()
 
@@ -177,6 +180,8 @@ class UGATIT:
 
                 losses[f'g_{domain}_{scale}'] = mse_loss(fake_score)
                 losses[f'g_{domain}_{scale}_cam'] = mse_loss(fake_cam_logit)
+            
+            return losses
 
         losses = {}
         losses.update(get_discriminator_losses(fake=fake_B2A, domain='A'))
@@ -201,6 +206,7 @@ class UGATIT:
         generator_loss = sum(x for x in losses.values())
         generator_loss.backward()
         self.G_optimizer.step()
+        self.discriminator.requires_grad_(True)
 
         return {k: v.item() for k, v in losses.items()}
 
@@ -308,7 +314,7 @@ class UGATIT:
 
         return A2B, B2A
 
-    def save_model(self):
+    def save(self):
 
         torch.save(self.generator.state_dict(), f'{self.model_save_prefix}_generator.pth')
         torch.save(self.discriminator.state_dict(), f'{self.model_save_prefix}_discriminator.pth')

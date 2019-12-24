@@ -37,7 +37,9 @@ class Generator(nn.Module):
         size = image_size // m
 
         FC = [
-            nn.Linear(size * size * depth * m, depth * m),
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.Linear(depth * m, depth * m),
             nn.ReLU(inplace=True),
             nn.Linear(depth * m, depth * m),
             nn.ReLU(inplace=True)
@@ -119,7 +121,7 @@ class Generator(nn.Module):
         heatmap = torch.sum(x, dim=1, keepdim=True)
         # it has shape [b, 1, h / s, w / s]
 
-        y = self.FC(x.view(b, -1))
+        y = self.FC(x)#.view(b, -1))
         gamma, beta = self.gamma(y), self.beta(y)
         # they have shape [b, depth * s]
 
@@ -209,9 +211,9 @@ class ILN(nn.Module):
     def __init__(self, num_features):
         super(ILN, self).__init__()
 
-        self.rho = Parameter(torch.Tensor(1, num_features, 1, 1))
-        self.gamma = Parameter(torch.Tensor(1, num_features, 1, 1))
-        self.beta = Parameter(torch.Tensor(1, num_features, 1, 1))
+        self.rho = nn.Parameter(torch.Tensor(1, num_features, 1, 1))
+        self.gamma = nn.Parameter(torch.Tensor(1, num_features, 1, 1))
+        self.beta = nn.Parameter(torch.Tensor(1, num_features, 1, 1))
         self.rho.data.fill_(0.0)
         self.gamma.data.fill_(1.0)
         self.beta.data.fill_(0.0)

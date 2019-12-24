@@ -17,6 +17,7 @@ class Images(Dataset):
 
         self.names = os.listdir(folder)
         self.folder = folder
+        self.is_training = is_training
 
         h, w = size
         assert h == w
