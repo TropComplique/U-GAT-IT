@@ -37,8 +37,8 @@ class UGATIT:
         num_steps = 1000000
         self.num_steps = num_steps
         self.save_step = 100000
-        self.plot_image_step = 3000
-        self.plot_loss_step = 30
+        self.plot_image_step = 1000
+        self.plot_loss_step = 10
 
         size = (image_size, image_size)
         self.dataset = {
@@ -157,7 +157,7 @@ class UGATIT:
         discriminator_loss.backward()
         self.D_optimizer.step()
 
-        return {k: v.item() for k, v in losses.items()}
+        return {f'discriminators/{k}': v.item() for k, v in losses.items()}
 
     def generators_step(self, real_A, real_B, fake_A2B, fake_B2A, fake_A2B_cam_logit, fake_B2A_cam_logit):
 
@@ -168,8 +168,9 @@ class UGATIT:
         fake_B2A2B, _, _ = self.generator['A2B'](fake_B2A)
 
         def get_discriminator_losses(fake, domain):
-            
+
             losses = {}
+
             def mse_loss(x):
                 return (x - 1.0).pow(2).mean()
 
@@ -178,9 +179,9 @@ class UGATIT:
                 network = self.discriminator[f'{scale}_{domain}']
                 fake_score, fake_cam_logit, _ = network(fake)
 
-                losses[f'g_{domain}_{scale}'] = mse_loss(fake_score)
-                losses[f'g_{domain}_{scale}_cam'] = mse_loss(fake_cam_logit)
-            
+                losses[f'{domain}_{scale}'] = mse_loss(fake_score)
+                losses[f'{domain}_{scale}_cam'] = mse_loss(fake_cam_logit)
+
             return losses
 
         losses = {}
@@ -208,11 +209,11 @@ class UGATIT:
         self.G_optimizer.step()
         self.discriminator.requires_grad_(True)
 
-        return {k: v.item() for k, v in losses.items()}
+        return {f'generators/{k}': v.item() for k, v in losses.items()}
 
     def train(self):
 
-        for step in range(self.num_steps):
+        for step in range(1, self.num_steps + 1):
 
             print(f'iteration {step}')
 
@@ -316,5 +317,6 @@ class UGATIT:
 
     def save(self):
 
-        torch.save(self.generator.state_dict(), f'{self.model_save_prefix}_generator.pth')
-        torch.save(self.discriminator.state_dict(), f'{self.model_save_prefix}_discriminator.pth')
+        path = self.model_save_prefix
+        torch.save(self.generator.state_dict(), f'{path}_generator.pth')
+        torch.save(self.discriminator.state_dict(), f'{path}_discriminator.pth')

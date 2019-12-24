@@ -15,25 +15,26 @@ class Images(Dataset):
         """
         super(Dataset).__init__()
 
-        self.names = os.listdir(folder)
-        self.folder = folder
-        self.is_training = is_training
-
         h, w = size
         assert h == w
 
         if is_training:
-            self.transform = transforms.Compose([
+            transform = transforms.Compose([
                 transforms.Resize((h + 30, w + 30)),
                 transforms.RandomCrop(size),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor()
             ])
         else:
-            self.transform = transforms.Compose([
+            transform = transforms.Compose([
                 transforms.Resize(size),
                 transforms.ToTensor()
             ])
+
+        self.names = os.listdir(folder)
+        self.folder = folder
+        self.is_training = is_training
+        self.transform = transform
 
     def __len__(self):
         return len(self.names)

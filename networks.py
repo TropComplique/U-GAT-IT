@@ -34,12 +34,21 @@ class Generator(nn.Module):
         self.relu = nn.ReLU(inplace=True)
 
         # downsampled spatial size
-        size = image_size // m
+        size = image_size // (m * 2 * 2)
+
+        def simple_block(d):
+            return nn.Sequential(
+                nn.ReflectionPad2d(1),
+                nn.Conv2d(d, d, kernel_size=3, stride=2, bias=False),
+                nn.InstanceNorm2d(d, affine=True),
+                nn.ReLU(inplace=True)
+            )
 
         FC = [
-            nn.AdaptiveAvgPool2d(1),
+            simple_block(depth * m),
+            simple_block(depth * m),
             nn.Flatten(),
-            nn.Linear(depth * m, depth * m),
+            nn.Linear(size * size * depth * m, depth * m),
             nn.ReLU(inplace=True),
             nn.Linear(depth * m, depth * m),
             nn.ReLU(inplace=True)
@@ -121,8 +130,9 @@ class Generator(nn.Module):
         heatmap = torch.sum(x, dim=1, keepdim=True)
         # it has shape [b, 1, h / s, w / s]
 
-        y = self.FC(x)#.view(b, -1))
-        gamma, beta = self.gamma(y), self.beta(y)
+        y = self.FC(x)
+        gamma = self.gamma(y)
+        beta = self.beta(y)
         # they have shape [b, depth * s]
 
         for m in self.styled_blocks:
