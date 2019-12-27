@@ -49,8 +49,10 @@ class Generator(nn.Module):
 
         FC = [
             downsampling_block(depth * m),
-            downsampling_block(depth * m), nn.Flatten(),
-            nn.Linear(size * size * depth * m, depth * m),
+            downsampling_block(depth * m),
+            downsampling_block(depth * m),
+            nn.AdaptiveAvgPool2d(1), nn.Flatten(),
+            nn.Linear(depth * m, depth * m),
             nn.ReLU(inplace=True),
             nn.Linear(depth * m, depth * m),
             nn.ReLU(inplace=True)
@@ -202,7 +204,7 @@ class adaILN(nn.Module):
 
     def forward(self, x, gamma, beta):
 
-        epsilon = 1e-5
+        epsilon = 1e-3
 
         in_mean = torch.mean(x, dim=[2, 3], keepdim=True)
         in_var = torch.var(x, dim=[2, 3], keepdim=True)
@@ -232,7 +234,7 @@ class ILN(nn.Module):
 
     def forward(self, x):
 
-        epsilon = 1e-5
+        epsilon = 1e-3
 
         in_mean = torch.mean(x, dim=[2, 3], keepdim=True)
         in_var = torch.var(x, dim=[2, 3], keepdim=True)

@@ -83,9 +83,9 @@ class UGATIT:
         self.discriminator.apply(weights_init).to(device)
 
         params = {
-            'lr': 1e-4,
+            'lr': 2e-4,
             'betas': (0.5, 0.999),
-            'weight_decay': 1e-4
+            'weight_decay': 0.0
         }
 
         self.G_optimizer = optim.Adam(self.generator.parameters(), **params)
@@ -225,6 +225,13 @@ class UGATIT:
                 real_B = train_B_iterator.next()
 
             real_A, real_B = real_A.to(self.device), real_B.to(self.device)
+
+            is_bad = (real_A.var(dim=[1, 2, 3]).min().item() < 1e-3) \
+                or (real_B.var(dim=[1, 2, 3]).min().item() < 1e-3)
+
+            if is_bad:
+                print('BAD')
+                continue
 
             fake_A2B, fake_A2B_cam_logit, _ = self.generator['A2B'](real_A)
             fake_B2A, fake_B2A_cam_logit, _ = self.generator['B2A'](real_B)
