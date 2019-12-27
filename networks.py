@@ -33,10 +33,9 @@ class Generator(nn.Module):
         self.conv1x1 = nn.Conv2d(depth * m * 2, depth * m, kernel_size=1)
         self.relu = nn.ReLU(inplace=True)
 
-        # downsampled spatial size
-        size = image_size // (m * 2 * 2)
 
-        def simple_block(d):
+
+        def downsampling_block(d):
             return nn.Sequential(
                 nn.ReflectionPad2d(1),
                 nn.Conv2d(d, d, kernel_size=3, stride=2, bias=False),
@@ -44,10 +43,15 @@ class Generator(nn.Module):
                 nn.ReLU(inplace=True)
             )
 
+        # downsampled spatial size
+        size = image_size // m
+
+        num_additional_downsamplings = 2
+        size /= 2**num_additional_downsamplings
+
         FC = [
-            simple_block(depth * m),
-            simple_block(depth * m),
-            nn.Flatten(),
+            downsampling_block(depth * m),
+            downsampling_block(depth * m), nn.Flatten(),
             nn.Linear(size * size * depth * m, depth * m),
             nn.ReLU(inplace=True),
             nn.Linear(depth * m, depth * m),
