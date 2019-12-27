@@ -1,4 +1,3 @@
-import os
 import cv2
 import time
 import numpy as np
@@ -28,7 +27,8 @@ class UGATIT:
         image_size = 256
         device = torch.device('cuda:0')
         self.device = device
-        data = '/home/dan/datasets/selfie2anime/'
+        train_A_path = '/home/dan/datasets/selfie2anime/train_A/'
+        train_B_path = '/home/dan/datasets/selfie2anime/train_B/'
 
         self.model_save_prefix = 'models/run00'
         logs_dir = 'summaries/run00/'
@@ -42,23 +42,18 @@ class UGATIT:
 
         size = (image_size, image_size)
         self.dataset = {
-            'train_A': Images(os.path.join(data, 'train_A'), size, is_training=True),
-            'train_B': Images(os.path.join(data, 'train_B'), size, is_training=True),
-            # 'test_A': Images(os.path.join(data, 'test_A'), size, is_training=False),
-            # 'test_B': Images(os.path.join(data, 'test_B'), size, is_training=False)
+            'train_A': Images(train_A_path, size),
+            'train_B': Images(train_B_path, size)
         }
 
-        def get_loader(dataset, is_training):
+        def get_loader(dataset):
             return DataLoader(
-                dataset=dataset, shuffle=is_training,
-                batch_size=batch_size if is_training else 1,
-                num_workers=1, pin_memory=True, drop_last=True
+                dataset=dataset, shuffle=True,
+                batch_size=batch_size, num_workers=1,
+                pin_memory=True, drop_last=True
             )
 
-        self.loader = {
-            k: get_loader(v, v.is_training)
-            for k, v in self.dataset.items()
-        }
+        self.loader = {k: get_loader(v) for k, v in self.dataset.items()}
 
         generator = {
             'A2B': Generator(),

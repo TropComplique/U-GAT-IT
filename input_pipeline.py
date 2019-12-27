@@ -6,35 +6,27 @@ from torchvision import transforms
 
 class Images(Dataset):
 
-    def __init__(self, folder, size, is_training):
+    def __init__(self, folder, size):
         """
         Arguments:
             folder: a string, the path to a folder with images.
             size: a tuple of integers (h, w).
-            is_training: a boolean.
         """
         super(Dataset).__init__()
 
         h, w = size
         assert h == w
 
-        if is_training:
-            transform = transforms.Compose([
-                transforms.Resize((h + 30, w + 30)),
-                transforms.RandomCrop(size),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor()
-            ])
-        else:
-            transform = transforms.Compose([
-                transforms.Resize(size),
-                transforms.ToTensor()
-            ])
+        transform = transforms.Compose([
+            transforms.Resize((h + 30, w + 30)),
+            transforms.RandomCrop(size),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor()
+        ])
 
         self.names = os.listdir(folder)
-        self.folder = folder
-        self.is_training = is_training
         self.transform = transform
+        self.folder = folder
 
     def __len__(self):
         return len(self.names)
