@@ -24,17 +24,25 @@ class UGATIT:
     def __init__(self):
 
         batch_size = 1
+        num_steps = 500000
         image_size = 256
         device = torch.device('cuda:0')
-        self.device = device
-        train_A_path = '/home/dan/datasets/selfie2anime/train_A/'
-        train_B_path = '/home/dan/datasets/selfie2anime/train_B/'
 
-        self.model_save_prefix = 'models/run00'
+        train_A_path = '/home/dan/datasets/selfie2anime/trainA/'
+        train_B_path = '/home/dan/datasets/selfie2anime/trainB/'
+
+        save_dir = 'models/'
+        name = 'run00'  # model name
         logs_dir = 'summaries/run00/'
+
+        # use this to restore training
+        self.start_step = None
+
+        self.name = name
+        self.save_dir = save_dir
         self.writer = SummaryWriter(logs_dir)
 
-        num_steps = 500000
+        self.device = device
         self.num_steps = num_steps
         self.save_step = 50000
         self.plot_image_step = 1000
@@ -79,8 +87,8 @@ class UGATIT:
                 init.ones_(m.weight)
                 init.zeros_(m.bias)
 
-        self.generator.apply(weights_init).to(device)
-        self.discriminator.apply(weights_init).to(device)
+        self.generator.apply(weights_init).to(device).train()
+        self.discriminator.apply(weights_init).to(device).train()
 
         params = {
             'lr': 1e-4,
@@ -96,11 +104,8 @@ class UGATIT:
             m = 1.0 if i < decay else 1.0 - (i - decay) / (num_steps - decay)
             return max(m, 1e-3)
 
-        self.schedulers = [
-            LambdaLR(self.G_optimizer, lr_lambda=lambda_rule),
-            LambdaLR(self.D_optimizer, lr_lambda=lambda_rule)
-        ]
-
+        self.G_scheduler = LambdaLR(self.G_optimizer, lr_lambda=lambda_rule)
+        self.D_scheduler = LambdaLR(self.D_optimizer, lr_lambda=lambda_rule)
         self.rho_clipper = RhoClipper()
 
     def get_discriminator_losses(self, real, fake, domain):
@@ -208,7 +213,13 @@ class UGATIT:
 
     def train(self):
 
-        for step in range(1, self.num_steps + 1):
+        if self.start_step is not None:
+            start_step = self.start_step + 1
+            self.load(self.start_step)
+        else:
+            start_step = 1
+
+        for step in range(start_step, self.num_steps + 1):
 
             print(f'iteration {step}')
 
@@ -237,13 +248,12 @@ class UGATIT:
                 for k, v in losses.items():
                     self.writer.add_scalar(k, v, step)
 
+            self.generator.apply(self.rho_clipper)
+            self.G_scheduler.step()
+            self.D_scheduler.step()
+
             if step % self.save_step == 0:
                 self.save(step)
-
-            self.generator.apply(self.rho_clipper)
-
-            for s in self.schedulers:
-                s.step()
 
             if step % self.plot_image_step == 0:
                 A2B, B2A = self.visualize(real_A, real_B)
@@ -312,6 +322,33 @@ class UGATIT:
 
     def save(self, step):
 
-        path = self.model_save_prefix
-        torch.save(self.generator.state_dict(), f'{path}_step_{step}_generators.pth')
-        torch.save(self.discriminator.state_dict(), f'{path}_step_{step}_discriminators.pth')
+        if not os.path.exists(self.save_dir):
+            os.makedirs(self.save_dir)
+
+        name = f'{self.name}_step_{step}'
+        path = os.path.join(self.save_dir, name)
+
+        torch.save(self.generator.state_dict(), f'{path}_generators.pth')
+        torch.save(self.discriminator.state_dict(), f'{path}_discriminators.pth')
+
+        training_state = {
+            'G_optimizer': self.G_optimizer.state_dict(),
+            'D_optimizer': self.D_optimizer.state_dict(),
+            'G_scheduler': self.G_scheduler.state_dict(),
+            'D_scheduler': self.D_scheduler.state_dict()
+        }
+        torch.save(training_state, f'{path}_training_state.pth')
+
+    def load(self, step):
+
+        name = f'{self.name}_step_{step}'
+        path = os.path.join(self.save_dir, name)
+
+        self.generator.load_state_dict(torch.load(f'{path}_generators.pth'))
+        self.discriminator.load_state_dict(torch.load(f'{path}_discriminator.pth'))
+
+        training_state = torch.load(f'{path}_training_state.pth')
+        self.G_optimizer.load_state_dict(training_state['G_optimizer'])
+        self.D_optimizer.load_state_dict(training_state['D_optimizer'])
+        self.G_scheduler.load_state_dict(training_state['G_scheduler'])
+        self.D_scheduler.load_state_dict(training_state['D_scheduler'])

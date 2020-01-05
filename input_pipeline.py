@@ -16,6 +16,7 @@ class Images(Dataset):
 
         h, w = size
         assert h == w
+        assert h == 256
 
         transform = transforms.Compose([
             transforms.Resize((h + 30, w + 30)),
