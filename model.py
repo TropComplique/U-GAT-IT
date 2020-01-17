@@ -1,3 +1,4 @@
+import os
 import cv2
 import time
 import numpy as np
@@ -17,6 +18,10 @@ from networks import Generator
 from networks import RhoClipper
 from networks import Discriminator
 from input_pipeline import Images
+
+
+# this will give a speed up
+torch.backends.cudnn.benchmark = True
 
 
 class UGATIT:
@@ -45,7 +50,7 @@ class UGATIT:
         self.device = device
         self.num_steps = num_steps
         self.save_step = 50000
-        self.plot_image_step = 1000
+        self.plot_image_step = 3000
         self.plot_loss_step = 10
 
         size = (image_size, image_size)
@@ -91,9 +96,9 @@ class UGATIT:
         self.discriminator.apply(weights_init).to(device).train()
 
         params = {
-            'lr': 1e-4,
+            'lr': 2e-4,
             'betas': (0.5, 0.999),
-            'weight_decay': 1e-4
+            'weight_decay': 0.0
         }
 
         self.G_optimizer = optim.Adam(self.generator.parameters(), **params)
@@ -345,7 +350,7 @@ class UGATIT:
         path = os.path.join(self.save_dir, name)
 
         self.generator.load_state_dict(torch.load(f'{path}_generators.pth'))
-        self.discriminator.load_state_dict(torch.load(f'{path}_discriminator.pth'))
+        self.discriminator.load_state_dict(torch.load(f'{path}_discriminators.pth'))
 
         training_state = torch.load(f'{path}_training_state.pth')
         self.G_optimizer.load_state_dict(training_state['G_optimizer'])
