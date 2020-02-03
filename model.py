@@ -33,6 +33,9 @@ class UGATIT:
         image_size = 256
         device = torch.device('cuda:0')
 
+        # download the data from here:
+        # https://github.com/taki0112/UGATIT#dataset
+
         train_A_path = '/home/dan/datasets/selfie2anime/trainA/'
         train_B_path = '/home/dan/datasets/selfie2anime/trainB/'
 

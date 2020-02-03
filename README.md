@@ -11,7 +11,7 @@ This an implementation of [U-GAT-IT: Unsupervised Generative Attentional Network
 1. The generator is slightly changed to fit training on a 11 GB graphics card.
 2. Use `python train.py` for training but set the right configs in `model.py` first.
 3. Use `generate.ipynb` for inference after the training.
-4. You can download **pretrained** checkpoints and logs from [here](https://drive.google.com/drive/folders/1ibTUNfN0NzqaGuS4P3njW-9YB0PJBDA7?usp=sharing).
+4. You can download **pretrained** (selfie2anime) checkpoints and logs from [here](https://drive.google.com/drive/folders/1ibTUNfN0NzqaGuS4P3njW-9YB0PJBDA7?usp=sharing).
 
 ## Credit
 
